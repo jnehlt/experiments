@@ -4,8 +4,6 @@
 #define array(T, N) typeof(T [N])
 #define mapConstructor(T, N) typeof(array(pointer(T), N))
 
-
-
 #define typename(x) _Generic                                                        \
     ((x),                                                                           \
          _Bool: "_Bool",                  unsigned char: "unsigned char",           \
