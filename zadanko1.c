@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 #define pointer(T) typeof(T *)
 #define array(T, N) typeof(T [N])
@@ -22,14 +23,12 @@
    long double: 15,                default: -1  \
      )
 
-
-typedef struct
+struct assocTable_methods
 {
   void (*add)    (void *, int);
   void (*delete) (void *, int);
   void (*find)   (void *, int);
-}
-assocTable_methods;
+};
 
 typedef struct
 {
@@ -41,8 +40,8 @@ assocTable_values;
 
 typedef struct
 {
-  assocTable_methods *pointerToMethods;
-  assocTable_values  *pointerToValues;
+  const struct assocTable_methods *pointerToMethods;
+  assocTable_values               *pointerToValues;
 }
 assocTable;
 
@@ -51,21 +50,29 @@ void       _delete    (void *incoming, int type);
 void       _find      (void *incoming, int type);
 assocTable _construct (int  keyType,   int valueType);
 
+static const struct assocTable_methods
+  assocTable_static_methods =
+  {
+    _add,
+    _delete,
+    _find
+  };
+
 int main (void)
 {
   assocTable mapa = Map(char, int);
+  printf("mapa.pointerToValues = %p\n"    , mapa.pointerToValues);
+  printf("mapa.pointerToValues->size = %d", mapa.pointerToValues->size);
 
   return 0;
 }
 
 assocTable _construct(int keyType, int valueType)
 {
-  printf("_keyType = %d\n_valueType = %d\n", keyType, valueType);
-
   assocTable Map;
-  Map.pointerToMethods->add      = _add;
-  Map.pointerToMethods->delete   = _delete;
-  Map.pointerToMethods->find     = _find;
+
+  Map.pointerToMethods = &assocTable_static_methods;
+  Map.pointerToValues  = (assocTable_values  *)malloc(sizeof(assocTable_values ));
 
   Map.pointerToValues->size      = 0;
   Map.pointerToValues->keyType   = keyType;
