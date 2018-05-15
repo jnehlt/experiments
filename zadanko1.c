@@ -4,32 +4,29 @@
 #define pointer(T)     typeof(T *)
 #define dereference(T) typeof(*(T))
 #define array(T, N)    typeof(T [N])
-
-#define Map(T, N)                           \
-({  typeof(T) _T = 0;                       \
-    typeof(N) _N = 0;                       \
-    _construct(typename(_T), typename(_N)); \
+#define Map(T, N)                             \
+  ({  typeof(T) _T = 0;                       \
+      typeof(N) _N = 0;                       \
+      _construct(typename(_T), typename(_N)); \
+  })
+#define Add(thiscall, key, value)                                               \
+  ({  int v = _validate(thiscall, typename(key), typename(value));              \
+      if(v < 0)                                                                 \
+      {                                                                         \
+        fprintf(stderr, "map not initialized or corrupted\n");                  \
+        exit(-1);                                                               \
+      }                                                                         \
+      if(v > 0)                                                                 \
+      {                                                                         \
+        fprintf(stderr, "wrong parameter type\n");                              \
+        exit(1);                                                                \
+      }                                                                         \
+      typeof(key)           _key   = key;                                       \
+      typeof(value)         _value = value;                                     \
+      dereference(thiscall) _map   = *thiscall;                                 \
+                                                                                \
+    _map.method->add(thiscall, &_key, &_value, typename(key), typename(value)); \
 })
-
-#define Add(thiscall, key, value)                                       \
-({  int v = _validate(thiscall, typename(key), typename(value));        \
-    if(v < 0)                                                           \
-    {                                                                   \
-      fprintf(stderr, "map not initialized or corrupted\n");            \
-      exit(-1);                                                         \
-    }                                                                   \
-    if(v > 0)                                                           \
-    {                                                                   \
-      fprintf(stderr, "wrong parameter type\n");                        \
-      exit(1);                                                          \
-    }                                                                   \
-    typeof(key)           _key   = key;                                 \
-    typeof(value)         _value = value;                               \
-    dereference(thiscall) _map   = *thiscall;                           \
-                                                                        \
-    _map.method->add(thiscall, &_key, &_value, typename(key), typename(value));   \
-})
-
 #define TYPE_0  void *
 #define TYPE_1  _Bool
 #define TYPE_2  unsigned char
@@ -47,9 +44,7 @@
 #define TYPE_14 double
 #define TYPE_15 long double
 #define TYPE_16 char *
-
 #define TYPE_SELECT(__typeid) TYPE_ ## __typeid
-
 #define typename(x) _Generic                    \
     ((x),                                       \
          _Bool: 1,           unsigned char: 2,  \
@@ -63,19 +58,23 @@
        default: 0  \
      )
 
-// typedef enum COLOR
-// {
-//     RED,
-//     BLACK
-// }COLOR;
-
 typedef struct
 {
-  int size;
-  int keyType;
-  int valueType;
+  int    size;
+  int    keyType;
+  int    valueType;
+  void   *key;
+  void   *value;
 }
 assocTable_values;
+
+typedef struct assocTable_node
+{
+  const struct assocTable_methods *method;
+  assocTable_values               *value;
+  struct assocTable_node          *next;
+}
+assocTable;
 
 struct assocTable_methods
 {
@@ -84,23 +83,12 @@ struct assocTable_methods
   void (*find)   (assocTable*, void *, void *, int, int);
 };
 
-typedef struct assocTable_node
-{
-  const struct assocTable_methods *method;
-  assocTable_values               *value;
-  struct assocTable_node          *leftChild;
-  struct assocTable_node          *rightChild;
-  struct assocTable_node          *father;
-  //COLOR                            color;
-
-}
-assocTable;
-
-void       _add        (assocTable  *_map,         void       *incomingKey, void *incomingValue, int keyType, int keyValue);
-void       _delete     (assocTable  *_map,         void       *incomingKey, void *incomingValue, int keyType, int keyValue);
-void       _find       (assocTable  *_map,         void       *incomingKey, void *incomingValue, int keyType, int keyValue);
-int        _validate   (assocTable  *thiscall,     int        keyType,      int  valueType);
-assocTable *_construct (int         keyType,       int        valueType);
+void       _add        (assocTable  *_map,     void *incomingKey, void *incomingValue, int keyType, int keyValue);
+void       _delete     (assocTable  *_map,     void *incomingKey, void *incomingValue, int keyType, int keyValue);
+void       _find       (assocTable  *_map,     void *incomingKey, void *incomingValue, int keyType, int keyValue);
+int        _validate   (assocTable  *thiscall, int  keyType,      int  valueType);
+assocTable *_construct (int         keyType,   int  valueType);
+void       destructor  ()__attribute__ ((destructor (101)));
 
 static const struct assocTable_methods
   assocTable_static_methods =
@@ -113,7 +101,7 @@ static const struct assocTable_methods
 int main (void)
 {
   assocTable* mapa = Map(char*, int);
-  Add(&mapa, "h", 1);
+  Add(mapa, "h", 1);
 
   return 0;
 }
@@ -129,35 +117,19 @@ assocTable *_construct(int keyType, int valueType)
   Map->value->keyType   = keyType;
   Map->value->valueType = valueType;
 
-  Map->father           = NULL;
-  Map->leftChild        = NULL;
-  Map->rightChild       = NULL;
+  Map->next             = NULL;
 
   return Map;
 }
 
 void _add(assocTable *_map, void *incomingKey, void *incomingValue, int keyType, int keyValue)
 {
-  if(keyType ==  0){ TYPE_SELECT( 0) key = *((TYPE_SELECT( 0)*)incomingKey); }  //unknown type. Should exit program
+  if(keyType ==  0){ /*unknown type. program exit(1);*/ exit(1); }
 
-
-
-  if(keyType ==  1){ TYPE_SELECT( 1) key = *((TYPE_SELECT( 1)*)incomingKey); }
-  if(keyType ==  2){ TYPE_SELECT( 2) key = *((TYPE_SELECT( 2)*)incomingKey); }
-  if(keyType ==  3){ TYPE_SELECT( 3) key = *((TYPE_SELECT( 3)*)incomingKey); }
-  if(keyType ==  4){ TYPE_SELECT( 4) key = *((TYPE_SELECT( 4)*)incomingKey); }
-  if(keyType ==  5){ TYPE_SELECT( 5) key = *((TYPE_SELECT( 5)*)incomingKey); }
-  if(keyType ==  6){ TYPE_SELECT( 6) key = *((TYPE_SELECT( 6)*)incomingKey); }
-  if(keyType ==  7){ TYPE_SELECT( 7) key = *((TYPE_SELECT( 7)*)incomingKey); }
-  if(keyType ==  8){ TYPE_SELECT( 8) key = *((TYPE_SELECT( 8)*)incomingKey); }
-  if(keyType ==  9){ TYPE_SELECT( 9) key = *((TYPE_SELECT( 9)*)incomingKey); }
-  if(keyType == 10){ TYPE_SELECT(10) key = *((TYPE_SELECT(10)*)incomingKey); }
-  if(keyType == 11){ TYPE_SELECT(11) key = *((TYPE_SELECT(11)*)incomingKey); }
-  if(keyType == 12){ TYPE_SELECT(12) key = *((TYPE_SELECT(12)*)incomingKey); }
-  if(keyType == 13){ TYPE_SELECT(13) key = *((TYPE_SELECT(13)*)incomingKey); }
-  if(keyType == 14){ TYPE_SELECT(14) key = *((TYPE_SELECT(14)*)incomingKey); }
-  if(keyType == 15){ TYPE_SELECT(15) key = *((TYPE_SELECT(15)*)incomingKey); }
-  if(keyType == 16){ TYPE_SELECT(16) key = *((TYPE_SELECT(16)*)incomingKey); }
+  if(_map == NULL)
+  { //map isn't allocked
+    fprintf(stderr, "ERROR in function _add(assocTable*, void*, void*, int, int).\nProgram exit(1);");
+  }
 
 }
 
@@ -185,4 +157,9 @@ int _validate(assocTable *thiscall, int keyType, int valueType)
 int getType(int incomingType)
 {
     return incomingType;
+}
+
+void destructor()
+{
+    printf("heh\n");
 }
