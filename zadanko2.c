@@ -4,7 +4,7 @@
 #include <stdio.h>
  
 #define x 0x60FF24 //change to your current heap default address
-#define y 0x60FF28 //↑
+#define y 0x60FF28 //↑ + 4
 //to check it write a simple program where you define int variable and print its address.
  
 void main(void)
