@@ -2,7 +2,6 @@
 //Everything without semi-colons
 //this 'hack' works only on Windows platforms. Compile with gcc compiler
 #include <stdio.h>
-#include <stdlib.h>
  
 #define x 0x60FF24 //change to your current heap default address
 #define y 0x60FF28 //↑
