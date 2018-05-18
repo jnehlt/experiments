@@ -1,5 +1,5 @@
 //simple program in C that is taking 2 integers from user, substracts them (without '-'), and prints result on command line.
-//Everything without semi-colons and declaring variables
+//Everything without semi-colons and variable declarations.
 //this 'hack' works only on Windows platforms. Compile with gcc compiler
 #include <stdio.h>
  
